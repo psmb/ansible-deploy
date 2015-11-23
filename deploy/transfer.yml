@@ -1,0 +1,50 @@
+---
+
+- file: dest=/data/www/{{ item }} state=directory owner=80 group=80
+  become: true
+  with_items:
+    - transfer
+    - releases
+    - shared/Data/Logs
+    - shared/Data/Persistent
+
+- synchronize:
+    src: distr/
+    dest: /data/www/transfer/
+    rsync_opts:
+      - "-q"
+      - "--recursive"
+      - "--times"
+      - "--perms"
+      - "--links"
+      - "--delete"
+      - "--delete-excluded"
+      - "--exclude '*/Build/*'"
+      - "--exclude '*Test.php'"
+      - "--exclude '*TestCase.php'"
+      - "--exclude '.sass-cache'"
+      - "--exclude '.git'"
+      - "--exclude 'node_modules'"
+
+- file: dest=/data/www/releases/next state=absent
+  become: true
+
+- shell: cp -RPp /data/www/transfer /data/www/releases/next
+
+- file: src=/data/www/shared/{{item}} dest=/data/www/releases/next/{{ item }} state=link owner=80 group=80
+  become: true
+  with_items:
+    - Data/Logs
+    - Data/Persistent
+
+- shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
+  args:
+    chdir: /data/www/releases/next/
+
+- shell: rm -rf current && mv next current
+  args:
+    chdir: /data/www/releases/
+
+- shell: FLOW_CONTEXT=Production ./flow resource:publish
+  args:
+    chdir: /data/www/releases/current/

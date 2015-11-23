@@ -1,8 +1,0 @@
-- hosts: localhost
-  tasks:
-    - include: build.yml
-    - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
-
-- hosts: deploy_host
-  tasks:
-    - include: deploy.yml
