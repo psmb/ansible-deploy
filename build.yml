@@ -1,0 +1,9 @@
+---
+
+- file: dest=distr state=directory
+
+# Neos installation
+- git: repo={{ REPOSITORY_URL }} dest=distr accept_hostkey=true force=true
+- shell: composer install
+  args:
+    chdir: distr
