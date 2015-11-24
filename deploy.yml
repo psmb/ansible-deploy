@@ -19,6 +19,7 @@
         - releases
         - shared/Data/Logs
         - shared/Data/Persistent
+        - shared/Configuration
 
     - name: rsync distr to server
       synchronize:
@@ -36,7 +37,6 @@
           - "--exclude '*Test.php'"
           - "--exclude '*TestCase.php'"
           - "--exclude '.sass-cache'"
-          - "--exclude '.git'"
           - "--exclude 'node_modules'"
 
     - name: remove old next folder
@@ -52,6 +52,7 @@
       with_items:
         - Data/Logs
         - Data/Persistent
+        - Configuration/Settings.yaml
 
     - name: run migrations
       shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
@@ -64,7 +65,12 @@
       failed_when: smoked_page.content.find('This website is powered by Neos') == -1
 
     - name: move current to previous and move to next to current
-      shell: rm -rf previous && mv current previous && mv next current
+      shell: rm -rf previous && mv current previous
+      ignore_errors: yes
+      args:
+        chdir: /data/www/releases/
+    - shell: mv next current
+      ignore_errors: yes
       args:
         chdir: /data/www/releases/
 
@@ -78,7 +84,7 @@
       shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
       args:
         chdir: /data/www/releases/current/Web
-    - local_action: uri url="http://next.{{ DOMAIN }}"
+    - local_action: uri url="http://{{ DOMAIN }}/cc.php"
     - shell: rm cc.php
       args:
         chdir: /data/www/releases/current/Web
