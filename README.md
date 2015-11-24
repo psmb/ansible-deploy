@@ -1,3 +1,5 @@
+**Take heed: this package is meant for deploying only our websites at SFI.ru. Take inspiration, but don't blindly copy!**
+
 # Usage
 
 ### Deploy code in Surf-style

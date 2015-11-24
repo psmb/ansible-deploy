@@ -61,8 +61,7 @@
     - name: run smoke test
       local_action: uri url="http://next.{{ DOMAIN }}" return_content="yes"
       register: smoked_page
-    - command: return 1
-      when: smoked_page.content.find('This website is powered by Neos') == -1
+      failed_when: smoked_page.content.find('This website is powered by Neos') == -1
 
     - name: move current to previous and move to next to current
       shell: rm -rf previous && mv current previous && mv next current
