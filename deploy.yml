@@ -2,14 +2,15 @@
   tasks:
     - file: dest=distr state=directory
     - git: repo={{ REPOSITORY_URL }} dest=distr accept_hostkey=true force=true
-    - shell: composer install
+    - command: composer install
       args:
         chdir: distr
     - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
 - hosts: deploy_host
   tasks:
-    - file: dest=/data/www/{{ item }} state=directory owner=80 group=80
+    - name: create default directory structure
+      file: dest=/data/www/{{ item }} state=directory owner=80 group=80
       become: true
       with_items:
         - transfer
@@ -17,7 +18,8 @@
         - shared/Data/Logs
         - shared/Data/Persistent
 
-    - synchronize:
+    - name: rsync distr to server
+      synchronize:
         src: distr/
         dest: /data/www/transfer/
         rsync_opts:
@@ -35,26 +37,45 @@
           - "--exclude '.git'"
           - "--exclude 'node_modules'"
 
-    - file: dest=/data/www/releases/next state=absent
+    - name: remove old next folder
+      file: dest=/data/www/releases/next state=absent
       become: true
 
-    - shell: cp -RPp /data/www/transfer /data/www/releases/next
+    - name: copy to distr to next release folder
+      command: cp -RPp /data/www/transfer /data/www/releases/next
 
-    - file: src=/data/www/shared/{{item}} dest=/data/www/releases/next/{{ item }} state=link owner=80 group=80
+    - name: create symlinks to shared
+      file: src=/data/www/shared/{{ item }} dest=/data/www/releases/next/{{ item }} state=link owner=80 group=80
       become: true
       with_items:
         - Data/Logs
         - Data/Persistent
 
-    - shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
+    - name: run migrations
+      shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
       args:
         chdir: /data/www/releases/next/
 
-    - shell: rm -rf current && mv next current
+- hosts: localhost
+  tasks:
+    - name: run smoke test
+      uri:
+        url: http://next.{{ DOMAIN }}
+        return_content: yes
+      register: smoked_page
+
+    - name: smoke test didn't find Neos signature in page
+      command: return 1
+      when: smoked_page.content.find('This website is powered by Neos') == -1
+
+- hosts: deploy_host
+  tasks:
+    - name: move current to previous and move to next to current
+      shell: rm -rf previous && mv current previous && mv next current
       args:
         chdir: /data/www/releases/
 
-    - shell: FLOW_CONTEXT=Production ./flow resource:publish
+    - name: publish resources
+      shell: FLOW_CONTEXT=Production ./flow resource:publish
       args:
         chdir: /data/www/releases/current/
-
