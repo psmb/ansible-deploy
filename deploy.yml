@@ -1,3 +1,4 @@
+# Prepare stuff locally
 - hosts: localhost
   tasks:
     - file: dest=distr state=directory
@@ -7,6 +8,7 @@
         chdir: distr
     - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
+# Connect to server and do stuff there
 - hosts: deploy_host
   tasks:
     - name: create default directory structure
@@ -56,20 +58,12 @@
       args:
         chdir: /data/www/releases/next/
 
-- hosts: localhost
-  tasks:
     - name: run smoke test
-      uri:
-        url: http://next.{{ DOMAIN }}
-        return_content: yes
+      local_action: uri url="http://next.{{ DOMAIN }}" return_content="yes"
       register: smoked_page
-
-    - name: smoke test didn't find Neos signature in page
-      command: return 1
+    - command: return 1
       when: smoked_page.content.find('This website is powered by Neos') == -1
 
-- hosts: deploy_host
-  tasks:
     - name: move current to previous and move to next to current
       shell: rm -rf previous && mv current previous && mv next current
       args:
@@ -79,3 +73,18 @@
       shell: FLOW_CONTEXT=Production ./flow resource:publish
       args:
         chdir: /data/www/releases/current/
+
+    # Clearing opcode cache. More info here: http://codinghobo.com/opcache-and-symlink-based-deployments/
+    - name: flush opcache
+      shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
+      args:
+        chdir: /data/www/releases/current/Web
+    - local_action: uri url="http://next.{{ DOMAIN }}"
+    - shell: rm cc.php
+      args:
+        chdir: /data/www/releases/current/Web
+
+    - name: flush and warmup caches
+      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force && FLOW_CONTEXT=Production ./flow cache:warmup
+      args:
+        chdir: /data/www/releases/current
