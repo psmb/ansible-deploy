@@ -55,7 +55,7 @@
         - Configuration/Settings.yaml
 
     - name: run migrations
-      shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
+      shell: ./flow doctrine:migrate
       args:
         chdir: /data/www/releases/next/
 
@@ -80,7 +80,7 @@
         chdir: /data/www/releases/
 
     - name: publish resources
-      shell: FLOW_CONTEXT=Production ./flow resource:publish
+      shell: ./flow resource:publish
       args:
         chdir: /data/www/releases/current/
 
@@ -93,8 +93,3 @@
     - shell: rm cc.php
       args:
         chdir: /data/www/releases/current/Web
-
-    - name: flush and warmup caches
-      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force && FLOW_CONTEXT=Production ./flow cache:warmup
-      args:
-        chdir: /data/www/releases/current
