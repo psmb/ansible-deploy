@@ -60,7 +60,7 @@
         chdir: /data/www/releases/next/
 
     - name: flush and warmup caches before smoke test
-      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force && FLOW_CONTEXT=Production ./flow cache:warmup
+      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
       args:
         chdir: /data/www/releases/next/
 
