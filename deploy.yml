@@ -1,11 +1,11 @@
 # Prepare stuff locally
 - hosts: localhost
   tasks:
-    - file: dest=distr state=directory
-    - git: repo={{ REPOSITORY_URL }} dest=distr accept_hostkey=true force=true
+    - file: dest={{ DOMAIN }} state=directory
+    - git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
     - command: composer install
       args:
-        chdir: distr
+        chdir: "{{ DOMAIN }}"
     - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
 # Connect to server and do stuff there
@@ -21,9 +21,9 @@
         - shared/Data/Persistent
         - shared/Configuration
 
-    - name: rsync distr to server
+    - name: rsync to server
       synchronize:
-        src: distr/
+        src: "{{ DOMAIN }}/"
         dest: /data/www/transfer/
         rsync_opts:
           - "-q"
@@ -43,7 +43,7 @@
       file: dest=/data/www/releases/next state=absent
       become: true
 
-    - name: copy to distr to next release folder
+    - name: copy to {{ DOMAIN }} to next release folder
       command: cp -RPp /data/www/transfer /data/www/releases/next
 
     - name: create symlinks to shared
@@ -56,6 +56,11 @@
 
     - name: run migrations
       shell: FLOW_CONTEXT=Production ./flow doctrine:migrate
+      args:
+        chdir: /data/www/releases/next/
+
+    - name: flush and warmup caches before smoke test
+      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force && FLOW_CONTEXT=Production ./flow cache:warmup
       args:
         chdir: /data/www/releases/next/
 
