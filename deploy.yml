@@ -3,7 +3,7 @@
   tasks:
     - file: dest={{ DOMAIN }} state=directory
     - git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
-    - stat: path="beard.json"
+    - stat: path="{{ DOMAIN }}/beard.json"
       register: beard_file
     - command: php beard.phar patch
       args:
