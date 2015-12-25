@@ -1,0 +1,48 @@
+#  ansible-playbook neos-dev.yml --extra-vars "BRANCH=2.1 PORT=xxxx" -i "i"
+- hosts: localhost
+  tasks:
+    - file: dest={{ BRANCH }} state=directory
+    - git: repo=https://github.com/neos/neos-development-distribution version={{ BRANCH }} dest={{ BRANCH }} accept_hostkey=true force=true
+    - command: composer install
+      args:
+        chdir: "{{ BRANCH }}"
+    - add_host: hostname=deploy_host ansible_ssh_host=localhost ansible_ssh_port={{ PORT }} ansible_ssh_user=www
+
+# Connect to server and do stuff there
+- hosts: deploy_host
+  tasks:
+    - name: create default directory structure
+      file: dest=/data/www/{{ item }} state=directory owner=80 group=80
+      become: true
+      with_items:
+        - releases
+        - shared/Data/Logs
+        - shared/Data/Persistent
+        - shared/Configuration
+
+    - name: rsync distr to server
+      synchronize:
+        src: "{{ BRANCH }}/"
+        dest: /data/www/releases/current
+        rsync_opts:
+          - "-q"
+          - "--recursive"
+          - "--times"
+          - "--perms"
+          - "--links"
+          - "--delete"
+
+    - name: create symlinks to shared
+      file: src=/data/www/shared/{{ item }} dest=/data/www/releases/current/{{ item }} state=link owner=80 group=80
+      become: true
+      with_items:
+        - Data/Logs
+        - Data/Persistent
+        - Configuration/Settings.yaml
+
+    - name: Create database
+      shell: echo "CREATE DATABASE IF NOT EXISTS db" | mysql -u admin -ppass -h db
+    - name: Import site package
+      shell: ./flow site:import --package-key=TYPO3.NeosDemoTypo3Org
+      args:
+        chdir: /data/www/releases/current/
