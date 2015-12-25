@@ -26,6 +26,6 @@
     - name: Import database to target host
       shell: mysql -u admin -ppass -h db db < /data/www/shared/Data/Persistent/db.sql
     - name: Publish resources
-    - command: ./flow resource:publish
+      command: ./flow resource:publish
       args:
         chdir: "/data/www/releases/current"
