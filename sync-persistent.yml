@@ -8,12 +8,12 @@
 - hosts: source_host
   tasks:
     - name: export DB on source host
-      shell: mysqldump -h db -u admin -ppass kateheo_ru > /data/www/kateheo.ru/surf/shared/Data/Persistent/db.sql
+      shell: mysqldump -h db -u admin -ppass db > /data/www/shared/Data/Persistent/db.sql
     - name: sync persistent files from source to current host
       synchronize:
         mode: pull
-        src: /data/www/kateheo.ru/surf/shared/Data/Persistent/
-        dest: ./Persistent/
+        src: /data/www/shared/Data/Persistent/
+        dest: "{{TARGET_PERSISTENT_PATH}}"
         times: no
         perms: no
 
