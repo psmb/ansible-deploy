@@ -61,12 +61,12 @@
         - Configuration/Settings.yaml
 
     - name: run migrations
-      shell: ./flow doctrine:migrate
+      shell: /opt/remi/php70/root/usr/bin/php flow doctrine:migrate
       args:
         chdir: /data/www/releases/next/
 
     - name: flush and warmup caches before smoke test
-      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
+      shell: FLOW_CONTEXT=Production /opt/remi/php70/root/usr/bin/php flow flow:cache:flush --force
       args:
         chdir: /data/www/releases/next/
 
@@ -86,7 +86,7 @@
         chdir: /data/www/releases/
 
     - name: publish resources
-      shell: ./flow resource:publish
+      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish
       args:
         chdir: /data/www/releases/current/
 
