@@ -103,4 +103,4 @@
     - name: flush and warmup caches again after switching to from `next.`
       shell: FLOW_CONTEXT=Production /opt/remi/php70/root/usr/bin/php flow flow:cache:flush --force
       args:
-        chdir: /data/www/releases/next/
+        chdir: /data/www/releases/current/
