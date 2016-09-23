@@ -3,15 +3,15 @@
   tasks:
     - file: dest={{ DOMAIN }} state=directory
     - git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
+    - command: composer install
+      args:
+        chdir: "{{ DOMAIN }}"
     - stat: path="{{ DOMAIN }}/beard.json"
       register: beard_file
     - command: php beard.phar patch
       args:
         chdir: "{{ DOMAIN }}"
       when: beard_file.stat.exists == True
-    - command: composer install
-      args:
-        chdir: "{{ DOMAIN }}"
     - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
 # Connect to server and do stuff there
