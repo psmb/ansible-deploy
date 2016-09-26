@@ -71,7 +71,7 @@
         chdir: /data/www/releases/next/
 
     - name: run smoke test
-      local_action: uri url="http://next.{{ DOMAIN }}" return_content="yes"
+      local_action: uri url="{{ PROTOCOL | default('http') }}://next.{{ DOMAIN }}" return_content="yes" validate_certs="no"
       register: smoked_page
       failed_when: smoked_page.content.find('This website is powered by Neos') == -1
 
@@ -95,7 +95,7 @@
       shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
       args:
         chdir: /data/www/releases/current/Web
-    - local_action: uri url="http://{{ DOMAIN }}/cc.php"
+    - local_action: uri url="{{ PROTOCOL | default('http') }}://{{ DOMAIN }}/cc.php" validate_certs="no"
     - shell: rm cc.php
       args:
         chdir: /data/www/releases/current/Web
