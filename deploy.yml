@@ -12,7 +12,6 @@
       args:
         chdir: "{{ DOMAIN }}"
       when: beard_file.stat.exists == True
-      ignore_errors: yes
     - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
 # Connect to server and do stuff there
