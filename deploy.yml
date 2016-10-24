@@ -8,7 +8,7 @@
         chdir: "{{ DOMAIN }}"
     - stat: path="{{ DOMAIN }}/beard.json"
       register: beard_file
-    - command: php beard.phar patch
+    - command: git config --global user.email "ansible@test.com" && git config --global user.name "Ansible" && php beard.phar patch
       args:
         chdir: "{{ DOMAIN }}"
       when: beard_file.stat.exists == True
