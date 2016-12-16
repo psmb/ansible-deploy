@@ -1,3 +1,4 @@
+# DEPRECATED!
 # ansible-playbook sync-persistent.yml --extra-vars "SOURCE_HOST=server.psmb.ru SOURCE_PORT=1123 TARGET_HOST=localhost TARGET_PORT=32791 TARGET_PERSISTENT_PATH=" -i "i"
 
 - hosts: localhost

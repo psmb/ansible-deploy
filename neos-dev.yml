@@ -1,3 +1,4 @@
+# DEPRECATED!
 #  ansible-playbook neos-dev.yml --extra-vars "BRANCH=2.1 PORT=xxxx" -i "i"
 - hosts: localhost
   tasks:

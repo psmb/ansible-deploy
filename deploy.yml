@@ -1,18 +1,25 @@
 # Prepare stuff locally
 - hosts: localhost
   tasks:
-    - file: dest={{ DOMAIN }} state=directory
-    - git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
-    - command: composer install
+    - name: create temporary local dir
+      file: dest={{ DOMAIN }} state=directory
+    - name: clone repo
+      git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
+    - name: composer install
+      command: composer install
       args:
         chdir: "{{ DOMAIN }}"
-    - stat: path="{{ DOMAIN }}/beard.json"
-      register: beard_file
-    - command: php beard.phar patch
-      args:
-        chdir: "{{ DOMAIN }}"
-      when: beard_file.stat.exists == True
-    - add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
+    - block:
+      - name: look for beard.json
+        stat: path="{{ DOMAIN }}/beard.json"
+        register: beard_file
+      - name: beard it!
+        command: php beard.phar patch
+        args:
+          chdir: "{{ DOMAIN }}"
+        when: beard_file.stat.exists == True
+    - name: add deploy_host config
+      add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www
 
 # Connect to server and do stuff there
 - hosts: deploy_host
@@ -91,16 +98,34 @@
         chdir: /data/www/releases/current/
 
     # Clearing opcode cache. More info here: http://codinghobo.com/opcache-and-symlink-based-deployments/
-    - name: flush opcache
-      shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
-      args:
-        chdir: /data/www/releases/current/Web
-    - local_action: uri url="{{ PROTOCOL | default('http') }}://{{ DOMAIN }}/cc.php" validate_certs="no"
-    - shell: rm cc.php
-      args:
-        chdir: /data/www/releases/current/Web
+    - block:
+      - name: flush opcache
+        shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
+        args:
+          chdir: /data/www/releases/current/Web
+      - local_action: uri url="{{ PROTOCOL | default('http') }}://{{ DOMAIN }}/cc.php" validate_certs="no"
+      - shell: rm cc.php
+        args:
+          chdir: /data/www/releases/current/Web
+      - name: flush and warmup caches again after switching to from `next.`
+        shell: FLOW_CONTEXT=Production /opt/remi/php70/root/usr/bin/php flow flow:cache:flush --force
+        args:
+          chdir: /data/www/releases/current/
 
-    - name: flush and warmup caches again after switching to from `next.`
-      shell: FLOW_CONTEXT=Production /opt/remi/php70/root/usr/bin/php flow flow:cache:flush --force
-      args:
-        chdir: /data/www/releases/current/
+    - block:
+      - name: add previous remote to compare if NodeTypes.yaml changed
+        shell: git remote add -f previous ../previous/; git remote update
+        args:
+          chdir: /data/www/releases/current/
+      - name: test if NodeTypes.yaml changed (ignore if failed)
+        shell: git diff master remotes/previous/master --name-only|grep NodeTypes
+        register: nodeTypesModified
+        ignore_errors: yes
+        args:
+          chdir: /data/www/releases/current/
+      - name: if NodeTypes.yaml changed, rebuild the index
+        shell: ./flow nodeindex:build --workspace='live'
+        when: nodeTypesModified.rc == 0
+        args:
+          chdir: /data/www/releases/current/Web
+      when: ES | default(false)
