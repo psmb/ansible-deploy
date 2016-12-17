@@ -127,5 +127,5 @@
         shell: ./flow nodeindex:build --workspace='live'
         when: nodeTypesModified.rc == 0
         args:
-          chdir: /data/www/releases/current/Web
+          chdir: /data/www/releases/current/
       when: ES | default(false)
