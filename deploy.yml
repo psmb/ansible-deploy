@@ -114,7 +114,7 @@
 
     - block:
       - name: add previous remote to compare if NodeTypes.yaml changed
-        shell: git remote add -f previous ../previous/; git remote update
+        shell: git remote add -f previous ../previous/
         args:
           chdir: /data/www/releases/current/
       - name: test if NodeTypes.yaml changed (ignore if failed)
