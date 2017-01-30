@@ -4,7 +4,7 @@
     - name: create temporary local dir
       file: dest={{ DOMAIN }} state=directory
     - name: clone repo
-      git: repo={{ REPOSITORY_URL }} dest={{ DOMAIN }} accept_hostkey=true force=true
+      git: repo={{ REPOSITORY_URL }} version={{ VERSION|default(omit) }} dest={{ DOMAIN }} accept_hostkey=true force=true
     - name: composer install
       command: composer install
       args:
