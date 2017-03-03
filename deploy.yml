@@ -124,7 +124,7 @@
         args:
           chdir: /data/www/releases/current/
       - name: if NodeTypes.yaml changed, rebuild the index
-        shell: ./flow nodeindex:build --workspace='live'
+        shell: FLOW_CONTEXT=Production ./flow nodeindex:build --workspace='live'
         when: nodeTypesModified.rc == 0
         args:
           chdir: /data/www/releases/current/
