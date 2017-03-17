@@ -59,6 +59,10 @@
 
     - name: copy to {{ DOMAIN }} to next release folder
       command: cp -RPp /data/www/transfer /data/www/releases/next
+      
+    - name: remove _Resources folder
+      file: dest=/data/www/releases/next/Web/_Resources state=absent
+      become: true
 
     - name: create symlinks to shared
       file: src=/data/www/shared/{{ item }} dest=/data/www/releases/next/{{ item }} state=link owner=80 group=80
