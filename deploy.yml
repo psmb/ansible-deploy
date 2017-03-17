@@ -83,11 +83,6 @@
       args:
         chdir: /data/www/releases/next/
 
-    - name: publish static resources
-      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish --collection 'static'
-      args:
-        chdir: /data/www/releases/current/
-
     - name: run smoke test
       local_action: uri url="{{ PROTOCOL | default('http') }}://next.{{ DOMAIN }}" return_content="yes" validate_certs="no"
       register: smoked_page
@@ -102,6 +97,10 @@
       ignore_errors: yes
       args:
         chdir: /data/www/releases/
+    - name: publish static resources
+      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish --collection 'static'
+      args:
+        chdir: /data/www/releases/current/
 
     # Clearing opcode cache. More info here: http://codinghobo.com/opcache-and-symlink-based-deployments/
     - block:
