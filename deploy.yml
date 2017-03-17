@@ -33,6 +33,7 @@
         - shared/Data/Logs
         - shared/Data/Persistent
         - shared/Configuration
+        - shared/Web/_Resources
 
     - name: rsync to server
       synchronize:
@@ -66,6 +67,7 @@
         - Data/Logs
         - Data/Persistent
         - Configuration/Settings.yaml
+        - Web/_Resources
 
     - name: run migrations
       shell: /opt/remi/php70/root/usr/bin/php flow doctrine:migrate
@@ -76,6 +78,11 @@
       shell: FLOW_CONTEXT=Production /opt/remi/php70/root/usr/bin/php flow flow:cache:flush --force
       args:
         chdir: /data/www/releases/next/
+
+    - name: publish static resources
+      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish --collection 'static'
+      args:
+        chdir: /data/www/releases/current/
 
     - name: run smoke test
       local_action: uri url="{{ PROTOCOL | default('http') }}://next.{{ DOMAIN }}" return_content="yes" validate_certs="no"
@@ -91,11 +98,6 @@
       ignore_errors: yes
       args:
         chdir: /data/www/releases/
-
-    - name: publish resources
-      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish
-      args:
-        chdir: /data/www/releases/current/
 
     # Clearing opcode cache. More info here: http://codinghobo.com/opcache-and-symlink-based-deployments/
     - block:
