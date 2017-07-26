@@ -98,7 +98,7 @@
       args:
         chdir: /data/www/releases/
     - name: publish static resources
-      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish --collection 'static'
+      shell: /opt/remi/php70/root/usr/bin/php flow resource:publish
       args:
         chdir: /data/www/releases/current/
 
