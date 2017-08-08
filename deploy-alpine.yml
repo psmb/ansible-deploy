@@ -1,0 +1,136 @@
+# Prepare stuff locally
+- hosts: localhost
+  tasks:
+    - name: create temporary local dir
+      file: dest={{ DOMAIN }} state=directory
+    - name: clone repo
+      git: repo={{ REPOSITORY_URL }} version={{ VERSION|default(omit) }} dest={{ DOMAIN }} accept_hostkey=true force=true
+    - name: composer install
+      command: composer install
+      args:
+        chdir: "{{ DOMAIN }}"
+    - block:
+      - name: look for beard.json
+        stat: path="{{ DOMAIN }}/beard.json"
+        register: beard_file
+      - name: beard it!
+        command: php beard.phar patch
+        args:
+          chdir: "{{ DOMAIN }}"
+        when: beard_file.stat.exists == True
+    - name: add deploy_host config
+      add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www-data
+
+# Connect to server and do stuff there
+- hosts: deploy_host
+  tasks:
+    - name: create default directory structure
+      file: dest=/data/{{ item }} state=directory owner=80 group=80
+      become: true
+      with_items:
+        - transfer
+        - releases
+        - shared/Data/Logs
+        - shared/Data/Persistent
+        - shared/Configuration
+        - shared/Web/_Resources
+
+    - name: rsync to server
+      synchronize:
+        src: "{{ DOMAIN }}/"
+        dest: /data/transfer/
+        rsync_opts:
+          - "-q"
+          - "--recursive"
+          - "--times"
+          - "--perms"
+          - "--links"
+          - "--delete"
+          - "--delete-excluded"
+          - "--exclude '*/Build/*'"
+          - "--exclude '*Test.php'"
+          - "--exclude '*TestCase.php'"
+          - "--exclude '.sass-cache'"
+          - "--exclude 'node_modules'"
+
+    - name: remove old next folder
+      file: dest=/data/releases/next state=absent
+      become: true
+
+    - name: copy to {{ DOMAIN }} to next release folder
+      command: cp -RPp /data/transfer /data/releases/next
+      
+    - name: remove _Resources folder
+      file: dest=/data/releases/next/Web/_Resources state=absent
+      become: true
+
+    - name: create symlinks to shared
+      file: src=/data/shared/{{ item }} dest=/data/releases/next/{{ item }} state=link owner=80 group=80
+      become: true
+      with_items:
+        - Data/Logs
+        - Data/Persistent
+        - Configuration/Settings.yaml
+        - Web/_Resources
+
+    - name: run migrations
+      shell: ./flow doctrine:migrate
+      args:
+        chdir: /data/releases/next/
+
+    - name: flush and warmup caches before smoke test
+      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
+      args:
+        chdir: /data/releases/next/
+
+    - name: run smoke test
+      local_action: uri url="{{ PROTOCOL | default('http') }}://next.{{ DOMAIN }}" return_content="yes" validate_certs="no"
+      register: smoked_page
+      failed_when: smoked_page.content.find('This website is powered by Neos') == -1
+
+    - name: move current to previous and move to next to current
+      shell: rm -rf previous && mv current previous
+      ignore_errors: yes
+      args:
+        chdir: /data/releases/
+    - shell: mv next current
+      ignore_errors: yes
+      args:
+        chdir: /data/releases/
+    - name: publish static resources
+      shell: ./flow resource:publish
+      args:
+        chdir: /data/releases/current/
+
+    # Clearing opcode cache. More info here: http://codinghobo.com/opcache-and-symlink-based-deployments/
+    - block:
+      - name: flush opcache
+        shell: echo "<?php opcache_reset(); echo \"cache cleared\";" > cc.php
+        args:
+          chdir: /data/releases/current/Web
+      - local_action: uri url="{{ PROTOCOL | default('http') }}://{{ DOMAIN }}/cc.php" validate_certs="no"
+      - shell: rm cc.php
+        args:
+          chdir: /data/releases/current/Web
+      - name: flush and warmup caches again after switching to from `next.`
+        shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
+        args:
+          chdir: /data/releases/current/
+
+    - block:
+      - name: add previous remote to compare if NodeTypes.yaml changed
+        shell: git remote add -f previous ../previous/
+        args:
+          chdir: /data/releases/current/
+      - name: test if NodeTypes.yaml changed (ignore if failed)
+        shell: git diff master remotes/previous/master --name-only|grep NodeTypes
+        register: nodeTypesModified
+        ignore_errors: yes
+        args:
+          chdir: /data/releases/current/
+      - name: if NodeTypes.yaml changed, rebuild the index
+        shell: FLOW_CONTEXT=Production ./flow nodeindex:build --workspace='live'
+        when: nodeTypesModified.rc == 0
+        args:
+          chdir: /data/releases/current/
+      when: ES | default(false)
