@@ -98,7 +98,12 @@
       args:
         chdir: /data/releases/
     - name: publish static resources
-      shell: ./flow resource:publish
+      shell: ./flow resource:publish --collection='static'
+      args:
+        chdir: /data/releases/current/
+    - name: publish persistent resources
+      shell: ./flow resource:publish --collection='persistent'
+      when: PUBLISH_PERSISTENT | default(true)
       args:
         chdir: /data/releases/current/
 
