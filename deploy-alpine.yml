@@ -74,12 +74,12 @@
         - Web/_Resources
 
     - name: run migrations
-      shell: ./flow doctrine:migrate
+      shell: /usr/local/bin/php flow doctrine:migrate
       args:
         chdir: /data/releases/next/
 
     - name: flush and warmup caches before smoke test
-      shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
+      shell: FLOW_CONTEXT=Production /usr/local/bin/php flow flow:cache:flush --force
       args:
         chdir: /data/releases/next/
 
@@ -98,11 +98,11 @@
       args:
         chdir: /data/releases/
     - name: publish static resources
-      shell: ./flow resource:publish --collection='static'
+      shell: /usr/local/bin/php flow resource:publish --collection='static'
       args:
         chdir: /data/releases/current/
     - name: publish persistent resources
-      shell: ./flow resource:publish --collection='persistent'
+      shell: /usr/local/bin/php flow resource:publish --collection='persistent'
       when: PUBLISH_PERSISTENT | default(true)
       args:
         chdir: /data/releases/current/
@@ -118,7 +118,7 @@
         args:
           chdir: /data/releases/current/Web
       - name: flush and warmup caches again after switching to from `next.`
-        shell: FLOW_CONTEXT=Production ./flow flow:cache:flush --force
+        shell: FLOW_CONTEXT=Production /usr/local/bin/php flow flow:cache:flush --force
         args:
           chdir: /data/releases/current/
 
@@ -134,7 +134,7 @@
         args:
           chdir: /data/releases/current/
       - name: if NodeTypes.yaml changed, rebuild the index
-        shell: FLOW_CONTEXT=Production ./flow nodeindex:build --workspace='live'
+        shell: FLOW_CONTEXT=Production /usr/local/bin/php flow nodeindex:build --workspace='live'
         when: nodeTypesModified.rc == 0
         args:
           chdir: /data/releases/current/
