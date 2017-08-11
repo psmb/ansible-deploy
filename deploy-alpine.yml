@@ -19,7 +19,7 @@
           chdir: "{{ DOMAIN }}"
         when: beard_file.stat.exists == True
     - name: add deploy_host config
-      add_host: hostname=deploy_host ansible_ssh_host={{ HOST }} ansible_ssh_port={{ PORT }} ansible_ssh_user=www-data
+      add_host: hostname=deploy_host ansible_host={{ HOST }} ansible_port={{ PORT }} ansible_user=www-data
 
 # Connect to server and do stuff there
 - hosts: deploy_host
