@@ -103,7 +103,7 @@
         chdir: /data/releases/current/
     - name: publish persistent resources
       shell: /usr/local/bin/php flow resource:publish --collection='persistent'
-      when: PUBLISH_PERSISTENT != 'false' | default(true)
+      when: PUBLISH_PERSISTENT is undefined or PUBLISH_PERSISTENT != 'false'
       args:
         chdir: /data/releases/current/
 
