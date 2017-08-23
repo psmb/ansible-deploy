@@ -93,6 +93,7 @@
       ignore_errors: yes
       args:
         chdir: /data/releases/
+      become: true
     - shell: mv next current
       ignore_errors: yes
       args:
