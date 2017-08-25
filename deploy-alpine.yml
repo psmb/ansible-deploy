@@ -88,6 +88,24 @@
       register: smoked_page
       failed_when: smoked_page.content.find('This website is powered by Neos') == -1
 
+    - block:
+      - name: add current remote to compare if NodeTypes.yaml changed
+        shell: git remote add -f current ../current/
+        args:
+          chdir: /data/releases/next/
+      - name: test if NodeTypes.yaml changed (ignore if failed)
+        shell: git diff master remotes/current/master --name-only|grep NodeTypes
+        register: nodeTypesModified
+        ignore_errors: yes
+        args:
+          chdir: /data/releases/next/
+      - name: if NodeTypes.yaml changed, rebuild the index
+        shell: FLOW_CONTEXT=Production /usr/local/bin/php flow nodeindex:build --workspace='live'
+        when: nodeTypesModified.rc == 0
+        args:
+          chdir: /data/releases/next/
+      when: ES | default(false)
+
     - name: move current to previous and move to next to current
       shell: rm -rf previous && mv current previous
       ignore_errors: yes
@@ -123,20 +141,3 @@
         args:
           chdir: /data/releases/current/
 
-    - block:
-      - name: add previous remote to compare if NodeTypes.yaml changed
-        shell: git remote add -f previous ../previous/
-        args:
-          chdir: /data/releases/current/
-      - name: test if NodeTypes.yaml changed (ignore if failed)
-        shell: git diff master remotes/previous/master --name-only|grep NodeTypes
-        register: nodeTypesModified
-        ignore_errors: yes
-        args:
-          chdir: /data/releases/current/
-      - name: if NodeTypes.yaml changed, rebuild the index
-        shell: FLOW_CONTEXT=Production /usr/local/bin/php flow nodeindex:build --workspace='live'
-        when: nodeTypesModified.rc == 0
-        args:
-          chdir: /data/releases/current/
-      when: ES | default(false)
