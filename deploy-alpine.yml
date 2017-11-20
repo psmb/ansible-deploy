@@ -6,7 +6,7 @@
     - name: clone repo
       git: repo={{ REPOSITORY_URL }} version={{ VERSION|default(omit) }} dest={{ DOMAIN }} accept_hostkey=true force=true
     - name: composer install
-      command: composer install
+      command: composer install --prefer-source
       args:
         chdir: "{{ DOMAIN }}"
     - block:
